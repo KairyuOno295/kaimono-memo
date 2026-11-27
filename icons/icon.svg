@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- かいものメモのアイコン：パステルの背景に、ハートつきのショッピングバッグ -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd3e5"/>
+      <stop offset="0.55" stop-color="#f6dcf3"/>
+      <stop offset="1" stop-color="#dcd6ff"/>
+    </linearGradient>
+    <linearGradient id="bag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#fff0f6"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffa3c6"/>
+      <stop offset="1" stop-color="#f06a9e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="96" cy="110" r="70" fill="#ffffff" opacity="0.28"/>
+  <circle cx="430" cy="420" r="90" fill="#c9f1e2" opacity="0.55"/>
+  <ellipse cx="256" cy="398" rx="128" ry="18" fill="#c77aa6" opacity="0.18"/>
+  <path d="M200 206 V182 a56 56 0 0 1 112 0 V206" fill="none" stroke="#f285b0" stroke-width="22" stroke-linecap="round"/>
+  <rect x="144" y="190" width="224" height="200" rx="44" fill="url(#bag)" stroke="#ffbfd6" stroke-width="6"/>
+  <rect x="144" y="190" width="224" height="40" rx="20" fill="#bdeedd" opacity="0.9"/>
+  <circle cx="200" cy="210" r="9" fill="#f285b0"/>
+  <circle cx="312" cy="210" r="9" fill="#f285b0"/>
+  <path d="M256 354 C204 322 196 284 220 270 C236 261 250 268 256 280 C262 268 276 261 292 270 C316 284 308 322 256 354 Z" fill="url(#heart)"/>
+  <path d="M368 128 l9 20 20 9 -20 9 -9 20 -9 -20 -20 -9 20 -9 Z" fill="#ffd45c"/>
+  <path d="M148 140 l5 11 11 5 -11 5 -5 11 -5 -11 -11 -5 11 -5 Z" fill="#ffffff"/>
+  <circle cx="404" cy="206" r="7" fill="#ffffff"/>
+</svg>

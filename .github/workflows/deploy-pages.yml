@@ -1,0 +1,55 @@
+# GitHub Pages に公開する（main に変更を入れるたびに自動で動く）
+# - config.js は Git に入れず、リポジトリの Secrets か Variables（SUPABASE_URL・SUPABASE_ANON_KEY）から作る
+#   （手作業の手順は Secrets、tools\setup_cloud.py は Variables に入れる。anon キーは公開してよい鍵）
+# - どちらも空なら、リポジトリにある config.js をそのまま使う（SETUP.md の「おまけ2」の方法）
+# - 公開するのはアプリのファイルだけ（tests・tools・supabase・説明書は公開しない）
+name: GitHub Pages に公開
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 公開するファイルを集める
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          mkdir _site
+          cp -r index.html manifest.webmanifest sw.js css js icons _site/
+          find _site -name '*_旧*' -delete   # 変更前の控え（名前に「_旧」）は公開しない
+          if [ -n "$SUPABASE_URL" ]; then
+            printf "window.KAIMONO_CONFIG = {\n  supabaseUrl: '%s',\n  supabaseAnonKey: '%s',\n};\n" "$SUPABASE_URL" "$SUPABASE_ANON_KEY" > _site/config.js
+          elif [ -f config.js ]; then
+            cp config.js _site/config.js
+          else
+            cp config.example.js _site/config.js
+          fi
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

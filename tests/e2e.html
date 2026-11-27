@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>画面の操作テスト - かいものメモ</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; display: flex; gap: 12px; background: #fff; color: #222; }
+    #app { width: 390px; height: 844px; border: 0; flex: 0 0 auto; }
+    #out { padding: 12px; font-size: 13px; }
+    li { margin: 3px 0; } li.ng { color: #b00020; } pre { white-space: pre-wrap; font-size: 11px; background: #fee; padding: 6px; }
+    small { color: #888; }
+  </style>
+</head>
+<body>
+  <!-- アプリ（デモモード）を枠の中で開き、タップ・入力・スワイプのまねをして、主要な機能を確かめる -->
+  <iframe id="app" title="テストするアプリ"></iframe>
+  <div id="out">準備中…</div>
+  <script type="module" src="e2e.js"></script>
+</body>
+</html>

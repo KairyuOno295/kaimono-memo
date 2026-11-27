@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>アイコンの書き出し用</title>
+  <!-- icons/icon.svg を、指定した大きさ（?size=192 など）で左上いっぱいに表示する。
+       tests/run_tests.py --icons が、この画面を撮って PNG にする -->
+  <style>html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; } img { display: block; }</style>
+</head>
+<body>
+  <img id="icon" src="../icons/icon.svg" alt="">
+  <script>
+    const size = Number(new URLSearchParams(location.search).get('size')) || 512;
+    const img = document.getElementById('icon');
+    img.width = size;
+    img.height = size;
+    img.decode().then(() => { window.__iconReady = true; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Git に入れないファイル
+
+# Supabase の接続情報（GitHub では、公開のときに Secrets から自動で作る。SETUP.md の手順5-3）
+# ※ SETUP.md の「おまけ2」（config.js をそのまま公開する方法）を使うときは、下の1行を消す
+config.js
+
+# 前のテストの結果（いまの書き出し先は c:\AI_work\_テスト出力\買い物リスト\。2026-11-26 KM-006）
+tests/_output/
+
+# 変更前の控え（名前に「_旧」、最後が「.bak」）
+*_旧*
+*.bak
+
+# Python が作る一時ファイル
+__pycache__/
+*.pyc
+
+# エディタ・OS の一時ファイル
+.vscode/
+.DS_Store
+Thumbs.db
