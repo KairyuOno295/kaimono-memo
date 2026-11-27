@@ -3,6 +3,8 @@ import { $ } from './dom.js';
 import { esc, formatToday } from '../util.js';
 import { attachDragSort } from './gestures.js';
 import { openListEditor, openSettings } from './sheets.js';
+import { UI_ICONS } from './constants.js';
+import { emojiIcon } from './icons.js';
 
 export function initHome(ctx) {
   $('#btn-new-list').addEventListener('click', () => openListEditor(ctx, null));
@@ -29,7 +31,7 @@ export function renderHome(ctx) {
   ul.innerHTML = lists.map((l, i) => cardHtml(ctx, l, i, lists.length)).join('');
   const btn = $('#btn-reorder');
   btn.hidden = lists.length < 2;
-  btn.textContent = ctx.reorder ? '✓ 完了' : '↕️ 並べ替え';
+  btn.innerHTML = ctx.reorder ? `${UI_ICONS.done}完了` : `${UI_ICONS.sort}並べ替え`;
   btn.classList.toggle('is-active', ctx.reorder);
   $('#btn-new-list').hidden = ctx.reorder;
 }
@@ -37,18 +39,19 @@ export function renderHome(ctx) {
 function cardHtml(ctx, l, i, n) {
   const { left, total } = ctx.store.listStats(l.id);
   const shared = (ctx.store.data.members[l.id] || []).length > 1 || l.role === 'member';
+  const allDone = total > 0 && left === 0;
   let sub = `のこり ${left} 件`;
-  if (total === 0) sub = 'まだからっぽ';
-  else if (left === 0) sub = 'ぜんぶ完了 🎉';
-  const count = total === 0 ? '' : (left || '✓');
+  if (total === 0) sub = '品目なし';
+  else if (allDone) sub = 'すべて完了';
+  const count = total === 0 ? '' : (left || UI_ICONS.done);
   const tail = ctx.reorder
     ? reorderHtml(l, i, n)
-    : `<span class="lc-count${left ? '' : ' is-zero'}" aria-hidden="true">${count}</span>`;
+    : `<span class="lc-tail" aria-hidden="true"><span class="lc-count${left ? '' : ' is-zero'}">${count}</span>${UI_ICONS.chevron}</span>`;
   return `<li class="list-card" data-id="${esc(l.id)}" data-color="${esc(l.color)}">
     <a class="lc-link" href="#/list/${encodeURIComponent(l.id)}"${ctx.reorder ? ' tabindex="-1" aria-disabled="true"' : ''}>
-      <span class="lc-emoji" aria-hidden="true">${esc(l.emoji)}</span>
+      <span class="lc-emoji" aria-hidden="true">${emojiIcon(l.emoji)}</span>
       <span class="lc-body"><span class="lc-name">${esc(l.name)}</span>
-        <span class="lc-sub">${sub}${shared ? '<span class="lc-shared">👥 共有</span>' : ''}</span></span>
+        <span class="lc-sub${allDone ? ' is-done' : ''}">${sub}${shared ? `<span class="lc-shared">${UI_ICONS.users}共有</span>` : ''}</span></span>
     </a>${tail}</li>`;
 }
 

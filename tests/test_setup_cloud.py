@@ -7,11 +7,14 @@ tools\\setup_cloud.py のテスト（にせの Supabase・GitHub の窓口を使
 """
 import base64
 import hashlib
+import io
 import json
 import re
 import sys
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -38,6 +41,10 @@ class FakeCloud:
         assert headers['Authorization'].startswith('Bearer ')
         path = url.replace(sc.SUPABASE_API, '').replace(sc.GITHUB_API, '')
         self.calls.append((method, path))
+        # 合い鍵がちがえば、本物と同じように 401 を返す
+        is_sb = url.startswith(sc.SUPABASE_API)
+        if headers['Authorization'] != f'Bearer {SB_TOKEN if is_sb else GH_TOKEN}':
+            return 401, {'message': 'JWT could not be decoded' if is_sb else 'Bad credentials'}
         for (m, pat), res in self.fail.items():
             if m == method and re.search(pat, path):
                 return res
@@ -229,6 +236,61 @@ class SetupCloudTest(unittest.TestCase):
         with self.assertRaises(sc.ApiError) as cm:
             self.run_setup()
         self.assertIn('公開に失敗', str(cm.exception))
+
+    def ask(self, spec, inputs):
+        """合い鍵の入力を、決まった文字の順でまねる（画面に出た文は self.logs に入る）"""
+        it = iter(inputs)
+        self.logs = []
+        return sc.ask_api(spec, read=lambda prompt: next(it), log=self.logs.append, transport=self.cloud.transport)
+
+    def test_token_retry(self):
+        """合い鍵の入れまちがい（空・もう一方の合い鍵・2回貼り）でやめずに入れ直せ、見えない文字と空白は取り除く"""
+        api = self.ask(sc.SB_TOKEN_SPEC, ['', GH_TOKEN, SB_TOKEN + SB_TOKEN, '\x16' + SB_TOKEN + ' \r'])
+        self.assertEqual(api.request('GET', '/v1/projects'), [])
+        text = '\n'.join(self.logs)
+        for must in ['空でした', 'もう一方のサービス', '2回貼り付けた', '通りました']:
+            self.assertIn(must, text)
+        self.assertNotIn(SB_TOKEN, text)
+        self.assertNotIn(GH_TOKEN, text)
+        self.assertEqual({m for m, _ in self.cloud.calls}, {'GET'}, '確かめは読むだけ')
+
+    def test_token_hints(self):
+        """通らなかった理由の案内：始まりがちがう／始まりは合っている（消された・期限切れ）"""
+        with self.assertRaises(SystemExit) as cm:
+            self.ask(sc.GH_TOKEN_SPEC, ['abc', 'ghp_wrong', 'xghp_test', '', ' '])
+        self.assertIn('何も作っていません', str(cm.exception))
+        text = '\n'.join(self.logs)
+        self.assertIn('ghp_・github_pat_ で始まっていません', text)
+        self.assertIn('期限が切れている', text)
+        self.assertNotIn('ghp_wrong', text)
+        self.assertEqual(len(self.cloud.calls), 3)
+
+    def test_token_other_error_stops(self):
+        """401・403 以外のエラー（サービスの不調など）は入れ直しを求めず、そのまま止まる"""
+        self.cloud.fail[('GET', r'^/user$')] = (500, {'message': 'Server Error'})
+        with self.assertRaises(sc.ApiError) as cm:
+            self.ask(sc.GH_TOKEN_SPEC, [GH_TOKEN])
+        self.assertIn('500', str(cm.exception))
+
+    def test_token_fullwidth_and_403(self):
+        """全角の文字が入っても止まらずに入れ直せる。GitHub の 403（続けてまちがえた）でも入れ直せる"""
+        self.cloud.fail[('GET', r'^/user$')] = (403, {'message': 'Maximum number of login attempts exceeded'})
+        with self.assertRaises(SystemExit):
+            self.ask(sc.GH_TOKEN_SPEC, ['ghp_あいう', GH_TOKEN, '', '', ''])
+        text = '\n'.join(self.logs)
+        self.assertIn('全角の文字', text)
+        self.assertIn('数分待って', text)
+        self.assertEqual(len(self.cloud.calls), 1, '全角の合い鍵は送らない')
+
+    def test_main_token_check_error(self):
+        """合い鍵を確かめる途中のエラーでは「まだ何も作っていません」と出し、作る処理には進まない"""
+        out = io.StringIO()
+        boom = mock.Mock(side_effect=sc.ApiError('GET /user：500 Server Error', 500))
+        with mock.patch('builtins.input', return_value='y'), mock.patch.object(sc, 'ask_api', boom), \
+                mock.patch.object(sc, 'run_all') as run_all, redirect_stdout(out):
+            self.assertEqual(sc.main([]), 1)
+        self.assertIn('まだ何も作っていません', out.getvalue())
+        run_all.assert_not_called()
 
 
 if __name__ == '__main__':

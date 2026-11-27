@@ -3,7 +3,7 @@
 // - CDN のライブラリ・フォント：保存したものを先に使う（版を固定しているので中身は変わらない）
 // - Supabase（データ・ログイン・写真）：保存しない（そのまま通す）
 // アプリを更新したら、下の VERSION を上げる（古い保存を消して、新しいファイルを保存し直す）
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const APP_CACHE = `kaimono-app-${VERSION}`;
 const CDN_CACHE = 'kaimono-cdn-v1';
 const NETWORK_TIMEOUT_MS = 4000;
@@ -28,6 +28,7 @@ const APP_FILES = [
   './js/ui/main.js',
   './js/ui/dom.js',
   './js/ui/constants.js',
+  './js/ui/icons.js',
   './js/ui/theme.js',
   './js/ui/gestures.js',
   './js/ui/actions.js',

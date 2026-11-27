@@ -3,7 +3,7 @@
 // - デモモードのとき：お試し用の品目も入れる（架空のデータ）
 
 export const STARTER_LISTS = [
-  { name: 'スーパー', emoji: '🛒', color: 'pink' },
+  { name: 'スーパー', emoji: '🛒', color: 'sky' },
   { name: 'ドラッグストア', emoji: '💊', color: 'mint' },
   { name: '欲しいもの', emoji: '🎁', color: 'lavender' },
 ];

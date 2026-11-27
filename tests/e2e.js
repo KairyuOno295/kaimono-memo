@@ -97,12 +97,12 @@ test('新しいリストを作れる（絵文字・色を選べる）', async ()
   topLayer().querySelector('form').requestSubmit();
   await waitFor(() => listView() && text('#list-name') === 'テスト用リスト', 3000, 'リストの画面');
   eq(q('#view-list').dataset.color, 'sky');
-  eq(text('#list-emoji'), '🍰');
+  eq(q('#list-emoji svg')?.dataset.icon, 'cake', '選んだ🍰は線のアイコン（ケーキ）で出る'); // 2026-11-27 KM-012
 });
 
 test('空のリストには、イラストとひとことが出る', async () => {
   await waitFor(() => q('#items .empty'), 2000, '空の表示');
-  assert(text('#items .empty').includes('まだなにもないよ'));
+  assert(text('#items .empty').includes('まだ品目がありません'));
 });
 
 test('名前だけで追加でき、カテゴリごとにまとまる', async () => {
@@ -196,7 +196,7 @@ test('新しいカテゴリ（絵文字つき）を追加して使える', async
   topLayer().querySelector('form').requestSubmit();
   await waitFor(() => topLayer()?.querySelector('.chip.is-on')?.textContent.includes('ペット用品'), 2000, '追加したカテゴリが選ばれる');
   await closeTopSheet();
-  await waitFor(() => qa('.group-title').some((h) => h.textContent.includes('🐾') && h.textContent.includes('ペット用品')), 2000, 'カテゴリの見出し');
+  await waitFor(() => qa('.group-title').some((h) => h.querySelector('svg[data-icon="paw"]') && h.textContent.includes('ペット用品')), 2000, 'カテゴリの見出し（🐾は線のアイコン）');
 });
 
 test('左スワイプで削除 → 「元に戻す」で戻せる', async () => {
@@ -270,7 +270,7 @@ test('ダークモードに切り替えられる', async () => {
   click(topLayer().querySelector('[data-theme-set="dark"]'));
   eq(D().documentElement.dataset.theme, 'dark');
   const bg = W().getComputedStyle(D().body).backgroundColor;
-  eq(bg, 'rgb(31, 26, 36)', '背景が暗い色');
+  eq(bg, 'rgb(11, 17, 32)', '背景が暗い色'); // #0b1120（2026-11-27 KM-012 の紺）
   click(topLayer().querySelector('[data-theme-set="auto"]'));
   assert(!D().documentElement.dataset.theme, '自動に戻す');
   await closeTopSheet();

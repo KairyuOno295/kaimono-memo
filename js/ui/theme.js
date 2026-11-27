@@ -2,7 +2,7 @@
 // 自動のときは端末の設定（ダークモードかどうか）に合わせる。選んだ設定は端末に保存する。
 import { lsGet, lsSet } from '../util.js';
 
-const BAR = { light: '#ffeaf3', dark: '#221c27' }; // スマホ上部のバーの色
+const BAR = { light: '#f2f4f8', dark: '#0b1120' }; // スマホ上部のバーの色（画面の背景と同じ色）
 
 export function currentTheme() {
   return lsGet('theme') || 'auto';

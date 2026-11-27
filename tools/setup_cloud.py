@@ -4,6 +4,7 @@
 使い方（c:\\AI_work\\買い物リスト で、ご本人が実行する）:
   "C:\\Program Files\\FreeCAD 1.1\\bin\\python.exe" -I -B -X utf8 tools\\setup_cloud.py
     → 送る物の説明が出るので、よければ y → 合い鍵（アクセストークン）を2つ貼り付ける（画面には表示されない）
+      入れた合い鍵は、その場で通るか確かめる（読むだけ）。通らなければ、やめずに入れ直せる（5回まで）
   オプション:
     --dry-run   … 送るファイルの一覧を出すだけ（どこにもつながない）
     --name 名前 … Supabase のプロジェクトと GitHub のリポジトリの名前（省略時 kaimono-memo）
@@ -44,6 +45,12 @@ GITHUB_HEADERS = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version
 WORKFLOW_FILE = 'deploy-pages.yml'
 SUPABASE_TOKEN_PAGE = 'https://supabase.com/dashboard/account/tokens'
 GITHUB_TOKEN_PAGE = 'https://github.com/settings/tokens/new?scopes=repo,workflow&description=kaimono-memo-setup'
+GITHUB_PREFIXES = ('ghp_', 'github_pat_')
+# 合い鍵の入れ方と、その場での確かめ方（check は読むだけの窓口。prefixes・other は通らなかったときの案内だけに使う）
+SB_TOKEN_SPEC = {'label': 'Supabase の合い鍵', 'page': SUPABASE_TOKEN_PAGE, 'base': SUPABASE_API, 'headers': None,
+                 'check': '/v1/projects', 'prefixes': ('sbp_',), 'other': GITHUB_PREFIXES}
+GH_TOKEN_SPEC = {'label': 'GitHub の合い鍵', 'page': GITHUB_TOKEN_PAGE, 'base': GITHUB_API, 'headers': GITHUB_HEADERS,
+                 'check': '/user', 'prefixes': GITHUB_PREFIXES, 'other': ('sbp_',)}
 
 # GitHub に送らないもの
 SKIP_DIRS = {'.git', '__pycache__', 'node_modules'}
@@ -316,15 +323,56 @@ def explain(name, files):
     print('合い鍵とデータベースのパスワードは、画面にもファイルにも出しません。\n')
 
 
-def ask_token(label, page):
-    print(f'\n{label}を貼り付けて Enter を押してください（貼り付けても画面には表示されません）')
-    print(f'  合い鍵を作る画面：{page}')
-    for _ in range(3):
-        token = getpass.getpass('  > ').strip()
-        if token:
-            return token
-        print('  空でした。もう一度どうぞ')
-    raise SystemExit('合い鍵が入力されなかったので、やめました')
+def clean_token(raw):
+    """貼り付けた文字から、目に見えない文字（Ctrl+V を押したときに入る文字など）と空白を取り除く"""
+    return ''.join(c for c in raw if c.isprintable() and not c.isspace())
+
+
+def token_hint(token, spec):
+    """合い鍵が通らなかったときの、考えられる理由（合い鍵の中身は出さない）"""
+    if token.startswith(spec['other']):
+        return 'もう一方のサービスの合い鍵が入っているようです'
+    if not token.startswith(spec['prefixes']):
+        return (f'{"・".join(spec["prefixes"])} で始まっていません。'
+                'コピーが途中で切れていないか、別の文字をコピーしていないか確かめてください')
+    if sum(token.count(p) for p in spec['prefixes']) > 1:
+        return '2回貼り付けたようです（1回だけ貼り付けてください）'
+    return '合い鍵が消されたか、期限が切れているかもしれません。作り直した合い鍵を入れてください'
+
+
+def try_token(spec, token, log, transport):
+    """入れた合い鍵がその場で通るか確かめる（読むだけ）。通れば、そのサービスとのやりとりを返す"""
+    if not token:
+        log('  空でした。もう一度どうぞ')
+        return None
+    if not token.isascii():
+        log('  通りませんでした：全角の文字が入っています。日本語入力を切ってから、貼り付け直してください')
+        return None
+    api = Api(spec['base'], token, spec['headers'], transport)
+    try:
+        api.request('GET', spec['check'])
+    except ApiError as e:
+        if e.status not in (401, 403):
+            raise
+        # 403 は、何回か続けてまちがえたため、しばらく受け付けない状態のことがある
+        hint = token_hint(token, spec) if e.status == 401 else '何回か続けてまちがえたため、しばらく受け付けない状態かもしれません。数分待ってから'
+        log(f'  通りませんでした：{hint}')
+        log('  もう一度貼り付けてください（メモ帳からコピーし直して、右クリックで1回だけ）')
+        return None
+    log('  ✓ 通りました')
+    return api
+
+
+def ask_api(spec, read=getpass.getpass, log=print, transport=http_transport):
+    """合い鍵を入れてもらい、通るのを確かめてから、そのサービスとのやりとりを返す（空の入力も含めて5回まで）"""
+    log(f'\n{spec["label"]}を貼り付けて Enter を押してください（貼り付けても画面には表示されません）')
+    log('  貼り付けは右クリックで1回だけ（Ctrl+V は押さない）')
+    log(f'  合い鍵を作る画面：{spec["page"]}')
+    for _ in range(5):
+        api = try_token(spec, clean_token(read('  > ')), log, transport)
+        if api:
+            return api
+    raise SystemExit('合い鍵が5回とも通らなかったので、やめました（何も作っていません）')
 
 
 def finish(site):
@@ -351,8 +399,14 @@ def main(argv):
     if input('続けますか？（y＝はい／n＝やめる）：').strip().lower() not in ('y', 'yes', 'はい'):
         print('やめました（何も送っていません）')
         return 0
-    sb = Api(SUPABASE_API, ask_token('Supabase の合い鍵', SUPABASE_TOKEN_PAGE))
-    gh = Api(GITHUB_API, ask_token('GitHub の合い鍵', GITHUB_TOKEN_PAGE), GITHUB_HEADERS)
+    try:
+        sb, gh = ask_api(SB_TOKEN_SPEC), ask_api(GH_TOKEN_SPEC)
+    except ApiError as e:
+        print(f'\n止まりました：{e}\nまだ何も作っていません。少し待ってから、もう一度実行してください')
+        return 1
+    except (KeyboardInterrupt, EOFError):
+        print('\nやめました（何も作っていません）')
+        return 1
     print()
     try:
         finish(run_all(sb, gh, args.name, files))

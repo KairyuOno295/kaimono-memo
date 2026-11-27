@@ -6,6 +6,8 @@ import { guessCategory } from '../categories.js';
 import { resizeToJpeg } from '../image.js';
 import { addOrRevive, deleteWithUndo, photoUrl } from './actions.js';
 import { openCategoryEditor } from './sheets.js';
+import { UI_ICONS } from './constants.js';
+import { emojiIcon } from './icons.js';
 
 export function openItemSheet(ctx, { itemId = null, listId = null }) {
   const item = itemId ? ctx.store.data.items[itemId] : null;
@@ -36,8 +38,8 @@ function field(st, name) {
 function formHtml(item) {
   const v = (k) => esc(item?.[k] ?? '');
   const actions = item
-    ? '<button type="button" class="btn btn-danger-soft" data-act="delete">🗑️ 削除</button><button type="submit" class="btn btn-primary">保存する</button>'
-    : '<button type="submit" class="btn btn-primary btn-block">＋ 追加する</button>';
+    ? `<button type="button" class="btn btn-danger-soft" data-act="delete">${UI_ICONS.trash}削除</button><button type="submit" class="btn btn-primary">保存する</button>`
+    : `<button type="submit" class="btn btn-primary btn-block">${UI_ICONS.plus}追加する</button>`;
   return `<form class="item-form" novalidate>
   <label class="field"><span class="field-label">名前</span><input name="name" type="text" maxlength="200" required value="${v('name')}" placeholder="例：牛乳" autocomplete="off" enterkeyhint="done"></label>
   <div class="field-row">
@@ -51,8 +53,8 @@ function formHtml(item) {
   <div class="field"><span class="field-label">写真</span><div class="photo-field">
     <div class="photo-preview" hidden><img alt="写真のプレビュー"><button type="button" class="photo-remove" data-act="photo-remove" aria-label="写真を外す">✕</button></div>
     <div class="photo-buttons">
-      <label class="btn btn-soft btn-photo">📷 撮影する<input type="file" accept="image/*" capture="environment" class="visually-hidden" data-file="camera"></label>
-      <label class="btn btn-soft btn-photo">🖼️ 写真を選ぶ<input type="file" accept="image/*" class="visually-hidden" data-file="library"></label>
+      <label class="btn btn-soft btn-photo">${UI_ICONS.camera}撮影する<input type="file" accept="image/*" capture="environment" class="visually-hidden" data-file="camera"></label>
+      <label class="btn btn-soft btn-photo">${UI_ICONS.image}写真を選ぶ<input type="file" accept="image/*" class="visually-hidden" data-file="library"></label>
     </div></div></div>
   <div class="field-row">
     <label class="field"><span class="field-label">お店</span><input name="store" type="text" maxlength="100" value="${v('store')}" placeholder="例：駅前のスーパー"></label>
@@ -100,8 +102,8 @@ function renderChips(ctx, st) {
   const sel = cats.some((c) => c.id === st.category) ? st.category : 'other';
   st.form.querySelector('.cat-chips').innerHTML = cats.map((c) => {
     const on = c.id === sel;
-    return `<button type="button" class="chip${on ? ' is-on' : ''}" data-cat="${esc(c.id)}" role="radio" aria-checked="${on}">${esc(c.emoji)} ${esc(c.name)}</button>`;
-  }).join('') + '<button type="button" class="chip chip-add" data-act="add-cat">＋ 新しいカテゴリ</button>';
+    return `<button type="button" class="chip${on ? ' is-on' : ''}" data-cat="${esc(c.id)}" role="radio" aria-checked="${on}">${emojiIcon(c.emoji)}${esc(c.name)}</button>`;
+  }).join('') + `<button type="button" class="chip chip-add" data-act="add-cat">${UI_ICONS.plus}新しいカテゴリ</button>`;
 }
 
 /** 追加のとき：名前からカテゴリを自動で選ぶ（自分で選んだあとは変えない） */

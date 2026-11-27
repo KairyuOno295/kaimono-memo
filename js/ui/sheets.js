@@ -1,7 +1,8 @@
 // いろいろなシート（リストの作成・編集、リストのメニュー、共有、設定、カテゴリの管理、新しいパスワード）
 import { toast, openSheet, confirmSheet } from './dom.js';
 import { esc, isValidEmail, formatTime } from '../util.js';
-import { COLORS, LIST_EMOJIS, CATEGORY_EMOJIS, APP_VERSION } from './constants.js';
+import { COLORS, LIST_EMOJIS, CATEGORY_EMOJIS, APP_VERSION, UI_ICONS } from './constants.js';
+import { emojiIcon } from './icons.js';
 import { currentTheme, setTheme } from './theme.js';
 import { deleteWithUndo } from './actions.js';
 
@@ -31,20 +32,20 @@ function nextColor(ctx) {
 
 function listFormHtml(list, st) {
   const swatches = COLORS.map((c) => `<button type="button" class="swatch" data-color="${c.id}" data-pick-color="${c.id}" aria-label="${c.name}"></button>`).join('');
-  const emojis = LIST_EMOJIS.map((e) => `<button type="button" class="emoji-btn" data-pick-emoji="${e}" aria-label="絵文字 ${e}">${e}</button>`).join('');
+  const emojis = LIST_EMOJIS.map((e, i) => `<button type="button" class="emoji-btn" data-pick-emoji="${e}" aria-label="アイコン ${i + 1}">${emojiIcon(e)}</button>`).join('');
   return `<form class="list-form" novalidate>
     <div class="list-preview" data-color="${esc(st.color)}"><span class="lc-emoji" aria-hidden="true"></span><span class="lp-name"></span></div>
     <label class="field"><span class="field-label">リストの名前</span><input name="name" type="text" maxlength="100" required value="${esc(list?.name || '')}" placeholder="例：スーパー、100円ショップ" autocomplete="off"></label>
-    <div class="field"><span class="field-label">テーマカラー</span><div class="swatches">${swatches}</div></div>
-    <div class="field"><span class="field-label">絵文字</span><div class="emoji-grid">${emojis}</div></div>
-    <div class="sheet-actions"><button type="submit" class="btn btn-primary btn-block">${list ? '保存する' : '✨ つくる'}</button></div>
+    <div class="field"><span class="field-label">色</span><div class="swatches">${swatches}</div></div>
+    <div class="field"><span class="field-label">アイコン</span><div class="emoji-grid">${emojis}</div></div>
+    <div class="sheet-actions"><button type="submit" class="btn btn-primary btn-block">${list ? '保存する' : '作成する'}</button></div>
   </form>`;
 }
 
 function updateListPreview(form, st) {
   const p = form.querySelector('.list-preview');
   p.dataset.color = st.color;
-  p.querySelector('.lc-emoji').textContent = st.emoji;
+  p.querySelector('.lc-emoji').innerHTML = emojiIcon(st.emoji);
   p.querySelector('.lp-name').textContent = form.querySelector('[name="name"]').value.trim() || 'リストの名前';
   form.querySelectorAll('[data-pick-color]').forEach((b) => b.classList.toggle('is-on', b.dataset.pickColor === st.color));
   form.querySelectorAll('[data-pick-emoji]').forEach((b) => b.classList.toggle('is-on', b.dataset.pickEmoji === st.emoji));
@@ -70,14 +71,14 @@ export function openListMenu(ctx, listId) {
   const owner = list.role !== 'member';
   const hasDone = ctx.store.itemsOf(listId).some((i) => i.checked);
   const rows = [
-    ['edit', '✏️', '名前・色・絵文字を変える'],
-    ['share', '👥', '家族と共有する'],
-    ['categories', '🏷️', 'カテゴリを管理する'],
-    hasDone && ['clear', '🧹', 'チェック済みをまとめて削除'],
-    owner ? ['delete', '🗑️', 'このリストを削除', true] : ['leave', '🚪', 'このリストから抜ける', true],
+    ['edit', UI_ICONS.edit, '名前・色・アイコンを変える'],
+    ['share', UI_ICONS.users, '家族と共有する'],
+    ['categories', UI_ICONS.tag, 'カテゴリを管理する'],
+    hasDone && ['clear', UI_ICONS.done, 'チェック済みをまとめて削除'],
+    owner ? ['delete', UI_ICONS.trash, 'このリストを削除', true] : ['leave', UI_ICONS.leave, 'このリストから抜ける', true],
   ].filter(Boolean);
   const html = rows.map(([act, icon, label, danger]) => `<button type="button" class="menu-row${danger ? ' is-danger' : ''}" data-menu="${act}"><span class="menu-icon" aria-hidden="true">${icon}</span>${label}</button>`).join('');
-  const sheet = openSheet({ title: `${list.emoji} ${list.name}`, className: 'menu-sheet', color: list.color, body: `<div class="menu">${html}</div>` });
+  const sheet = openSheet({ title: list.name, className: 'menu-sheet', color: list.color, body: `<div class="menu">${html}</div>` });
   sheet.el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-menu]');
     if (!b) return;
@@ -151,14 +152,14 @@ export function openShareSheet(ctx, listId) {
 
 function shareHtml(ctx, list) {
   if (ctx.mode === 'local') {
-    return '<div class="notice">🧪 デモモードでは共有できません。<br>SETUP.md の手順で Supabase を設定すると、メールアドレスで家族を招待できるようになります。</div>';
+    return '<div class="notice">デモモードでは共有できません。<br>SETUP.md の手順で Supabase を設定すると、メールアドレスで家族を招待できるようになります。</div>';
   }
   const tail = list.role !== 'member'
     ? `<form class="invite-form" novalidate>
         <label class="field"><span class="field-label">招待する人のメールアドレス</span><input type="email" name="email" inputmode="email" autocomplete="email" placeholder="例：family@example.com" required></label>
-        <button type="submit" class="btn btn-primary btn-block">💌 招待する</button></form>
+        <button type="submit" class="btn btn-primary btn-block">${UI_ICONS.mail}招待する</button></form>
        <p class="hint">招待された人が、このアプリに同じメールアドレスで登録（ログイン）すると、このリストが表示されます。変更はリアルタイムで反映されます。</p>`
-    : '<button type="button" class="btn btn-danger-soft btn-block" data-share="leave">🚪 このリストから抜ける</button>';
+    : `<button type="button" class="btn btn-danger-soft btn-block" data-share="leave">${UI_ICONS.leave}このリストから抜ける</button>`;
   return `<h3 class="sub-title">メンバー</h3><ul class="members"></ul>${tail}`;
 }
 
@@ -172,7 +173,7 @@ function membersHtml(ctx, list) {
       <span class="m-email">${esc(m.email || '（メール不明）')}${m.user_id === me ? ' <small>（あなた）</small>' : ''}</span>
       <span class="badge">${m.role === 'owner' ? 'オーナー' : 'メンバー'}</span>${remove}</li>`;
   });
-  const invites = (ctx.store.data.invites[list.id] || []).map((i) => `<li class="member is-invite"><span class="avatar" aria-hidden="true">💌</span>
+  const invites = (ctx.store.data.invites[list.id] || []).map((i) => `<li class="member is-invite"><span class="avatar" aria-hidden="true">${UI_ICONS.mail}</span>
       <span class="m-email">${esc(i.email)}</span><span class="badge badge-soft">招待中</span>
       ${owner ? `<button type="button" class="icon-btn small" data-share="cancel" data-email="${esc(i.email)}" aria-label="${esc(i.email)} への招待を取り消す">✕</button>` : ''}</li>`);
   return rows.concat(invites).join('') || '<li class="member muted">読み込み中…</li>';
@@ -225,14 +226,14 @@ function settingsHtml(ctx) {
   const theme = currentTheme();
   const seg = [['auto', '自動'], ['light', 'ライト'], ['dark', 'ダーク']].map(([v, l]) => `<button type="button" class="seg${v === theme ? ' is-on' : ''}" data-theme-set="${v}" role="radio" aria-checked="${v === theme}">${l}</button>`).join('');
   const account = ctx.mode === 'local'
-    ? '<p class="set-text">🧪 デモモードで動いています。データはこの端末の中だけに保存されます。<br>家族との共有やほかの端末との同期には、SETUP.md の手順で Supabase を設定してください。</p>'
+    ? '<p class="set-text">デモモードで動いています。データはこの端末の中だけに保存されます。<br>家族との共有やほかの端末との同期には、SETUP.md の手順で Supabase を設定してください。</p>'
     : `<p class="set-text">ログイン中：<b>${esc(ctx.store.user.email || '')}</b></p><button type="button" class="btn btn-soft btn-block" data-set="logout">ログアウト</button>`;
-  const sync = ctx.mode === 'local' ? '' : '<section class="set-group"><h3>同期</h3><div class="sync-info"></div><button type="button" class="btn btn-soft btn-block" data-set="sync">🔄 今すぐ同期</button></section>';
+  const sync = ctx.mode === 'local' ? '' : `<section class="set-group"><h3>同期</h3><div class="sync-info"></div><button type="button" class="btn btn-soft btn-block" data-set="sync">${UI_ICONS.sync}今すぐ同期</button></section>`;
   return `<div class="settings">
     <section class="set-group"><h3>表示</h3><div class="segmented" role="radiogroup" aria-label="表示の明るさ">${seg}</div></section>
     <section class="set-group"><h3>カテゴリ・入力候補</h3>
-      <button type="button" class="set-row" data-set="categories"><span>🏷️ カテゴリを管理する</span><span aria-hidden="true">›</span></button>
-      <button type="button" class="set-row" data-set="clear-history"><span>🧽 入力候補の履歴を消す</span><span aria-hidden="true">›</span></button></section>
+      <button type="button" class="set-row" data-set="categories"><span class="set-label">${UI_ICONS.tag}カテゴリを管理する</span>${UI_ICONS.chevron}</button>
+      <button type="button" class="set-row" data-set="clear-history"><span class="set-label">${UI_ICONS.history}入力候補の履歴を消す</span>${UI_ICONS.chevron}</button></section>
     ${sync}
     <section class="set-group"><h3>アカウント</h3>${account}</section>
     <p class="version">かいものメモ v${APP_VERSION}</p></div>`;
@@ -243,7 +244,8 @@ function drawSync(ctx, root) {
   if (!box) return;
   const s = ctx.store.status;
   const last = s.lastSyncAt ? formatTime(s.lastSyncAt) : 'まだ';
-  box.innerHTML = `<p class="set-text">${navigator.onLine ? '🟢 オンライン' : '☁️ オフライン'}　未送信：${ctx.store.outbox.length} 件<br>最後に同期：${esc(last)}${s.error ? `<br>⚠️ ${esc(s.error)}` : ''}</p>`;
+  const net = navigator.onLine ? '<span class="net is-on">オンライン</span>' : '<span class="net">オフライン</span>';
+  box.innerHTML = `<p class="set-text">${net}　未送信：${ctx.store.outbox.length} 件<br>最後に同期：${esc(last)}${s.error ? `<br><span class="set-error">${esc(s.error)}</span>` : ''}</p>`;
 }
 
 async function onSettingsClick(ctx, sheet, e) {
@@ -287,7 +289,7 @@ export function openCategoryManager(ctx) {
   let off = () => {};
   const sheet = openSheet({
     title: 'カテゴリの管理', className: 'cat-sheet', onClose: () => off(),
-    body: '<div class="cat-manage"></div><div class="sheet-actions"><button type="button" class="btn btn-primary btn-block" data-cat-act="add">＋ カテゴリを追加</button></div>',
+    body: `<div class="cat-manage"></div><div class="sheet-actions"><button type="button" class="btn btn-primary btn-block" data-cat-act="add">${UI_ICONS.plus}カテゴリを追加</button></div>`,
   });
   const draw = () => { sheet.el.querySelector('.cat-manage').innerHTML = catManageHtml(ctx); };
   off = ctx.store.on(draw);
@@ -303,9 +305,9 @@ function catManageHtml(ctx) {
     if (!c.custom) tag = '<span class="badge badge-soft">標準</span>';
     else if (!mine) tag = '<span class="badge badge-soft">共有メンバー</span>';
     const btns = mine
-      ? `<button type="button" class="icon-btn small" data-cat-act="edit" data-id="${esc(c.id)}" aria-label="${esc(c.name)} を編集">✏️</button><button type="button" class="icon-btn small" data-cat-act="delete" data-id="${esc(c.id)}" aria-label="${esc(c.name)} を削除">🗑️</button>`
+      ? `<button type="button" class="icon-btn small" data-cat-act="edit" data-id="${esc(c.id)}" aria-label="${esc(c.name)} を編集">${UI_ICONS.edit}</button><button type="button" class="icon-btn small" data-cat-act="delete" data-id="${esc(c.id)}" aria-label="${esc(c.name)} を削除">${UI_ICONS.trash}</button>`
       : '';
-    return `<div class="cat-row"><span class="cat-emoji" aria-hidden="true">${esc(c.emoji)}</span><span class="cat-name">${esc(c.name)}</span>${tag}${btns}</div>`;
+    return `<div class="cat-row"><span class="cat-emoji" aria-hidden="true">${emojiIcon(c.emoji)}</span><span class="cat-name">${esc(c.name)}</span>${tag}${btns}</div>`;
   }).join('');
 }
 
@@ -325,13 +327,13 @@ async function onCatManageClick(ctx, e) {
 export function openCategoryEditor(ctx, catId, onSaved = null) {
   const cat = catId ? ctx.store.data.categories[catId] : null;
   const st = { emoji: cat?.emoji || CATEGORY_EMOJIS[0] };
-  const emojis = CATEGORY_EMOJIS.map((e) => `<button type="button" class="emoji-btn${e === st.emoji ? ' is-on' : ''}" data-pick-emoji="${e}" aria-label="絵文字 ${e}">${e}</button>`).join('');
+  const emojis = CATEGORY_EMOJIS.map((e, i) => `<button type="button" class="emoji-btn${e === st.emoji ? ' is-on' : ''}" data-pick-emoji="${e}" aria-label="アイコン ${i + 1}">${emojiIcon(e)}</button>`).join('');
   const sheet = openSheet({
     title: cat ? 'カテゴリを編集' : '新しいカテゴリ', className: 'cat-edit-sheet',
     body: `<form class="cat-form" novalidate>
       <label class="field"><span class="field-label">カテゴリの名前</span><input name="name" type="text" maxlength="30" required value="${esc(cat?.name || '')}" placeholder="例：ペット用品" autocomplete="off"></label>
-      <div class="field"><span class="field-label">絵文字</span><div class="emoji-grid">${emojis}</div></div>
-      <div class="sheet-actions"><button type="submit" class="btn btn-primary btn-block">${cat ? '保存する' : '＋ 追加する'}</button></div></form>`,
+      <div class="field"><span class="field-label">アイコン</span><div class="emoji-grid">${emojis}</div></div>
+      <div class="sheet-actions"><button type="submit" class="btn btn-primary btn-block">${cat ? '保存する' : '追加する'}</button></div></form>`,
   });
   const form = sheet.el.querySelector('form');
   form.addEventListener('click', (e) => {

@@ -1,7 +1,8 @@
 // リストの中身の画面（品目の表示・名前だけで追加・入力候補・チェック・スワイプ削除）
 import { $, vibrate, openViewer, reducedMotion } from './dom.js';
 import { esc, formatPrice, formatQty, byPosition, lsGet, lsSet } from '../util.js';
-import { CHECK_SVG } from './constants.js';
+import { CHECK_SVG, UI_ICONS } from './constants.js';
+import { emojiIcon } from './icons.js';
 import { attachSwipe } from './gestures.js';
 import { addOrRevive, deleteWithUndo, photoUrl } from './actions.js';
 import { openItemSheet } from './item-sheet.js';
@@ -27,19 +28,29 @@ export function renderList(ctx, listId) {
   const list = ctx.store.data.lists[listId];
   if (ctx.listId !== listId) { ctx.listId = listId; $('#quick-input').value = ''; }
   $('#view-list').dataset.color = list.color;
-  $('#list-emoji').textContent = list.emoji;
+  $('#list-emoji').innerHTML = emojiIcon(list.emoji);
   $('#list-name').textContent = list.name;
   document.title = `${list.name} - かいものメモ`;
   const items = ctx.store.itemsOf(listId);
   const open = items.filter((i) => !i.checked).sort(byPosition);
   const done = items.filter((i) => i.checked)
     .sort((a, b) => String(b.checked_at || '').localeCompare(String(a.checked_at || '')));
+  $('#list-sub').innerHTML = subHtml(ctx, list, open.length, items.length);
   $('#items').innerHTML = items.length ? groupsHtml(ctx, open) + doneHtml(listId, open, done) : emptyHtml();
   const btn = $('#btn-clear-checked');
   btn.hidden = done.length === 0;
-  btn.textContent = `🧹 チェック済みを削除（${done.length}）`;
+  btn.innerHTML = `${UI_ICONS.trash}チェック済みを削除（${done.length}）`;
   hydratePhotos(ctx);
   highlight(ctx);
+}
+
+/** リスト名の下の小さな文字（のこりの数・共有している人数） */
+function subHtml(ctx, list, left, total) {
+  if (!total) return '';
+  const n = (ctx.store.data.members[list.id] || []).length;
+  const shared = n > 1 || list.role === 'member';
+  const who = n > 1 ? `${n}人で共有` : '共有';
+  return `のこり ${left} 件${shared ? `<span class="dot">・</span>${UI_ICONS.users}${who}` : ''}`;
 }
 
 function groupsHtml(ctx, open) {
@@ -56,29 +67,29 @@ function groupsHtml(ctx, open) {
 
 function groupHtml(cat, items) {
   return `<section class="group" data-cat="${esc(cat.id)}">
-    <h2 class="group-title"><span class="g-emoji" aria-hidden="true">${esc(cat.emoji)}</span>${esc(cat.name)}<span class="g-count">${items.length}</span></h2>
+    <h2 class="group-title"><span class="g-emoji" aria-hidden="true">${emojiIcon(cat.emoji)}</span>${esc(cat.name)}<span class="g-count">${items.length}</span></h2>
     <ul class="cards">${items.map(itemHtml).join('')}</ul></section>`;
 }
 
 function doneHtml(listId, open, done) {
   if (!done.length) return '';
   const collapsed = lsGet(`collapsed:${listId}`) === '1';
-  const cheer = open.length ? '' : '<p class="all-done">🎉 ぜんぶ買えたね！おつかれさま</p>';
+  const cheer = open.length ? '' : '<p class="all-done">すべてチェックしました。おつかれさまでした</p>';
   return `${cheer}<section class="group done-group${collapsed ? ' is-collapsed' : ''}">
     <h2 class="group-title"><button type="button" class="collapse-btn" data-act="collapse" aria-expanded="${!collapsed}">
-      <span class="g-emoji" aria-hidden="true">✅</span>チェック済み<span class="g-count">${done.length}</span><span class="chev" aria-hidden="true">▾</span></button></h2>
+      <span class="g-emoji" aria-hidden="true">${UI_ICONS.done}</span>チェック済み<span class="g-count">${done.length}</span><span class="chev" aria-hidden="true">▾</span></button></h2>
     <ul class="cards">${collapsed ? '' : done.map(itemHtml).join('')}</ul></section>`;
 }
 
 function itemHtml(it) {
-  const meta = [it.note, it.store && `🏪 ${it.store}`, formatPrice(it.price)]
+  const meta = [it.note, it.store, formatPrice(it.price)]
     .filter(Boolean).map(esc).join('<span class="dot">・</span>');
   const qty = it.quantity ? `<span class="qty">${esc(formatQty(it.quantity))}</span>` : '';
   const thumb = it.photo_path
     ? `<button type="button" class="thumb" data-act="photo" data-path="${esc(it.photo_path)}" aria-label="「${esc(it.name)}」の写真を大きく見る"><img alt=""></button>`
     : '';
   return `<li class="item-wrap${it.checked ? ' is-checked' : ''}" data-id="${esc(it.id)}">
-    <div class="item-bg" aria-hidden="true"><span>🗑️ 削除</span></div>
+    <div class="item-bg" aria-hidden="true"><span>${UI_ICONS.trash}削除</span></div>
     <div class="item">
       <button type="button" class="check" aria-pressed="${!!it.checked}" aria-label="${it.checked ? 'チェックを外す' : 'チェックする'}：${esc(it.name)}">${CHECK_SVG}</button>
       <button type="button" class="item-body" data-act="edit" aria-label="「${esc(it.name)}」の詳細を開く">
@@ -89,9 +100,9 @@ function itemHtml(it) {
 
 function emptyHtml() {
   return `<div class="empty">
-    <div class="empty-art" aria-hidden="true">🧺<span class="empty-spark">✨</span></div>
-    <p class="empty-title">まだなにもないよ</p>
-    <p class="empty-sub">上の入力欄に名前を入れて<br>「追加」を押してね ♪</p></div>`;
+    <div class="empty-art" aria-hidden="true">${UI_ICONS.cart}</div>
+    <p class="empty-title">まだ品目がありません</p>
+    <p class="empty-sub">上の入力欄に名前を入れて<br>「追加」を押してください</p></div>`;
 }
 
 function onItemsClick(ctx, e) {
@@ -207,8 +218,8 @@ function renderSuggest(ctx) {
   box.hidden = rows.length === 0;
   if (!rows.length) return;
   const cats = new Map(ctx.store.categories().map((c) => [c.id, c.emoji]));
-  const emoji = (r) => esc(cats.get(r.category) || '📦');
+  const icon = (r) => emojiIcon(cats.get(r.category) || '📦');
   box.innerHTML = q
-    ? rows.map((r) => `<button type="button" class="suggest-row" data-name="${esc(r.name)}"><span aria-hidden="true">${emoji(r)}</span><span class="s-name">${esc(r.name)}</span>${r.inList ? '<span class="s-tag">リストにあり</span>' : ''}</button>`).join('')
-    : `<p class="suggest-head">よく買うもの</p><div class="chips">${rows.map((r) => `<button type="button" class="chip" data-name="${esc(r.name)}">${emoji(r)} ${esc(r.name)}</button>`).join('')}</div>`;
+    ? rows.map((r) => `<button type="button" class="suggest-row" data-name="${esc(r.name)}"><span aria-hidden="true">${icon(r)}</span><span class="s-name">${esc(r.name)}</span>${r.inList ? '<span class="s-tag">リストにあり</span>' : ''}</button>`).join('')
+    : `<p class="suggest-head">よく買うもの</p><div class="chips">${rows.map((r) => `<button type="button" class="chip" data-name="${esc(r.name)}">${icon(r)}${esc(r.name)}</button>`).join('')}</div>`;
 }

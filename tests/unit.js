@@ -2,7 +2,10 @@
 import { test, assert, eq, run, sleep } from './harness.js';
 import { setDbNamespace, kv } from '../js/db.js';
 import { nameKey, parsePrice, stepQuantity, formatQty, formatPrice, esc, isValidEmail, isConfigured, uuid } from '../js/util.js';
-import { guessCategory, allCategories } from '../js/categories.js';
+import { guessCategory, allCategories, DEFAULT_CATEGORIES } from '../js/categories.js';
+import { iconName, emojiIcon } from '../js/ui/icons.js';
+import { LIST_EMOJIS, CATEGORY_EMOJIS } from '../js/ui/constants.js';
+import { STARTER_LISTS } from '../js/seed.js';
 import { fitSize, resizeToJpeg } from '../js/image.js';
 import { Store, mergeRows } from '../js/store.js';
 import { SupabaseBackend, classify, setupHint, isSetupMessage } from '../js/backend-supabase.js';
@@ -103,6 +106,18 @@ test('カテゴリの並び：標準 → 追加したもの → その他', () =
   eq(cats[0].id, 'veg');
   eq(cats.at(-1).id, 'other');
   eq(cats.slice(-3, -1).map((c) => c.id), ['c1', 'c2']);
+});
+
+test('線のアイコン：選べる物・標準のカテゴリ・最初のリストは全部アイコンで出て、対応のない絵文字はそのまま', () => {
+  const all = [...LIST_EMOJIS, ...CATEGORY_EMOJIS, ...DEFAULT_CATEGORIES.map((c) => c.emoji), ...STARTER_LISTS.map((l) => l.emoji)];
+  eq(all.filter((e) => !iconName(e)).join(' '), '', 'アイコンのない絵文字');
+  assert(emojiIcon('🏷️').includes('data-icon="tag"'), '異体字セレクタ付きでも見つかる');
+  eq(iconName('\u{1F3F7}'), 'tag', '異体字セレクタなしでも同じアイコン');
+  const fb = emojiIcon('🦄');
+  assert(fb.startsWith('<span class="emo">') && fb.includes('🦄'), '対応のない絵文字は絵文字のまま');
+  assert(!emojiIcon('<b>x</b>').includes('<b>'), '文字が入っていても無害化する');
+  eq(new Set(LIST_EMOJIS).size, LIST_EMOJIS.length, 'リストの選択肢に重複がない');
+  eq(new Set(CATEGORY_EMOJIS).size, CATEGORY_EMOJIS.length, 'カテゴリの選択肢に重複がない');
 });
 
 // ---------- 写真 ----------

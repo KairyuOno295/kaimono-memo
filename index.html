@@ -7,8 +7,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
   <title>かいものメモ</title>
   <meta name="description" content="家族で共有できる、買い物・欲しいものリスト">
-  <meta name="theme-color" content="#ffeaf3" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#221c27" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f2f4f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,25 +49,29 @@
       <header class="topbar home-head">
         <div class="home-title">
           <p class="home-date" id="home-date"></p>
-          <h1>かいものメモ <span aria-hidden="true">🛍️</span></h1>
+          <h1>かいものメモ</h1>
         </div>
         <span class="sync-pill" hidden></span>
         <button type="button" class="icon-btn" id="btn-settings" aria-label="設定">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4.9a7.6 7.6 0 0 0-2.6-1.5L14 2.4h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.4l-2.4-.9-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-.9a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4.9 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
         </button>
       </header>
-      <p class="demo-banner" id="demo-banner" hidden>🧪 デモモード：データはこの端末の中だけに保存されます</p>
+      <p class="demo-banner" id="demo-banner" hidden>デモモード：データはこの端末の中だけに保存されます</p>
       <main class="home-main">
         <ul class="list-cards" id="list-cards"></ul>
         <div class="empty" id="home-empty" hidden>
-          <div class="empty-art" aria-hidden="true">📝<span class="empty-spark">✨</span></div>
-          <p class="empty-title">リストをつくってみよう</p>
-          <p class="empty-sub">下の「＋ 新しいリスト」から<br>「スーパー」や「欲しいもの」をつくれます</p>
+          <div class="empty-art" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2"/><path d="M4.5 17.5h2v2h-2z"/></svg>
+          </div>
+          <p class="empty-title">リストを作りましょう</p>
+          <p class="empty-sub">下の「新しいリスト」から<br>「スーパー」や「欲しいもの」を作れます</p>
         </div>
       </main>
       <footer class="bottom-bar">
-        <button type="button" class="btn btn-soft" id="btn-reorder" hidden>↕️ 並べ替え</button>
-        <button type="button" class="btn btn-primary btn-grow" id="btn-new-list">＋ 新しいリスト</button>
+        <button type="button" class="btn btn-soft" id="btn-reorder" hidden>並べ替え</button>
+        <button type="button" class="btn btn-primary btn-grow" id="btn-new-list">
+          <svg class="ui-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>新しいリスト
+        </button>
       </footer>
     </section>
 
@@ -75,13 +79,14 @@
     <section id="view-list" class="view view-list" hidden data-color="pink">
       <div class="list-top">
         <header class="topbar list-head">
-          <button type="button" class="icon-btn" id="btn-back" aria-label="リスト一覧へ戻る">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button type="button" class="icon-btn back-btn" id="btn-back" aria-label="リスト一覧へ戻る">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span aria-hidden="true">リスト</span>
           </button>
           <h1 class="list-title"><span id="list-emoji" aria-hidden="true"></span><span id="list-name"></span></h1>
+          <p class="list-sub" id="list-sub"></p>
           <span class="sync-pill" hidden></span>
           <button type="button" class="icon-btn" id="btn-list-menu" aria-label="リストのメニュー">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="18.5" cy="12" r="1.7" fill="currentColor"/></svg>
           </button>
         </header>
         <form class="quick-add" id="quick-add" autocomplete="off">
@@ -93,10 +98,10 @@
       </div>
       <main class="items" id="items"></main>
       <footer class="list-foot">
-        <button type="button" class="btn btn-soft" id="btn-clear-checked" hidden>🧹 チェック済みを削除</button>
+        <button type="button" class="btn btn-soft" id="btn-clear-checked" hidden>チェック済みを削除</button>
       </footer>
       <button type="button" class="fab" id="fab-add" aria-label="詳しく入力して追加">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
     </section>
   </div>
@@ -109,7 +114,7 @@
   </div>
   <div id="boot" class="boot" aria-hidden="true"><img src="icons/icon.svg" alt="" width="88" height="88"></div>
   <div id="fatal" class="fatal" hidden>
-    <p>😢 起動できませんでした。ページを読み込み直してみてください。</p>
+    <p>起動できませんでした。ページを読み込み直してみてください。</p>
     <pre></pre>
     <button type="button" class="btn btn-primary" id="fatal-reload">読み込み直す</button>
   </div>
